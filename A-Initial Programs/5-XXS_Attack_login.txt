@@ -1,0 +1,15 @@
+//Create an HTML form element and set its method to "POST" and the action to the URL where the form data will be submitted.
+<form method="POST" action="login.php">
+
+//Create two input elements, one for the username and another for the password. Use the "type" attribute to set the input type to "text" for the username and "password" for the password.
+<label for="username">Username:</label>
+<input type="text" id="username" name="username" required>
+
+<label for="password">Password:</label>
+<input type="password" id="password" name="password" required>
+
+//Add a submit button to the form.
+<button type="submit">Login</button>
+
+//Close the form element.
+</form>
