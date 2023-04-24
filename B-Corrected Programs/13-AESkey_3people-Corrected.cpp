@@ -1,56 +1,52 @@
-#include <openssl/evp.h>
-#include <openssl/rand.h>
+#include <openssl/aes.h>
 #include <iostream>
 #include <cstring>
 
 // Function to generate a random key
 void generateRandomKey(unsigned char *key, int keyLength) {
-    RAND_bytes(key, keyLength);
-}
-
-// Function to derive a key from a password and a salt using PBKDF2
-void deriveKey(unsigned char *key, int keyLength, const char *password, const unsigned char *salt, int saltLength, int iterations) {
-    PKCS5_PBKDF2_HMAC(password, strlen(password), salt, saltLength, iterations, EVP_sha256(), keyLength, key);
+    FILE *urandom = fopen("/dev/urandom", "r");
+    fread(key, 1, keyLength, urandom);
+    fclose(urandom);
 }
 
 int main() {
     const unsigned char plaintext[] = "Hello World";
     const unsigned char iv[] = "initialvector123";
 
-    // Generate a random 256-bit master key
-    const int masterKeyLength = 32; // 256-bit key
-    unsigned char masterKey[masterKeyLength];
-    generateRandomKey(masterKey, masterKeyLength);
-
-    // Derive three unique 128-bit keys using PBKDF2
+    // Generate a random 128-bit AES key
     const int keyLength = 16; // 128-bit key
-    unsigned char johnKey[keyLength];
-    unsigned char mikeKey[keyLength];
-    unsigned char timKey[keyLength];
+    unsigned char key[keyLength];
+    generateRandomKey(key, keyLength);
 
-    const char *password = "mysecretpassword";
-    const int saltLength = 8;
-    unsigned char salt[saltLength];
-    generateRandomKey(salt, saltLength);
-
-    const int iterations = 10000;
-
-    deriveKey(johnKey, keyLength, password, salt, saltLength, iterations);
-    deriveKey(mikeKey, keyLength, password, salt, saltLength, iterations);
-    deriveKey(timKey, keyLength, password, salt, saltLength, iterations);
-
-    // Encrypt the plaintext message using AES-GCM with the master key
+    // Encrypt the plaintext message using AES-CBC with the generated key
     unsigned char ciphertext[AES_BLOCK_SIZE];
     memset(ciphertext, 0, AES_BLOCK_SIZE);
 
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL);
+    AES_KEY aesKey;
+    AES_set_encrypt_key(key, keyLength*8, &aesKey);
+    AES_cbc_encrypt(plaintext, ciphertext, sizeof(plaintext), &aesKey, iv, AES_ENCRYPT);
 
-    int len;
-    EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, sizeof(plaintext));
-    int ciphertextLength = len;
-    EVP_EncryptFinal_ex(ctx, ciphertext + len, &len);
-    ciphertextLength += len;
+    // Store the encrypted message in three different variables
+    unsigned char johnCiphertext[AES_BLOCK_SIZE];
+    unsigned char mikeCiphertext[AES_BLOCK_SIZE];
+    unsigned char timCiphertext[AES_BLOCK_SIZE];
 
-    unsigned char tag[EVP_GCM_TLS_TAG_LEN];
-    EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, EVP_GCM_TLS_TAG_LEN, tag);
+    AES_KEY johnKey, mikeKey, timKey;
+
+    // Generate a unique key for John
+    generateRandomKey(johnKey.rd_key, keyLength);
+    AES_set_encrypt_key(johnKey.rd_key, keyLength*8, &johnKey);
+    AES_cbc_encrypt(ciphertext, johnCiphertext, sizeof(ciphertext), &johnKey, iv, AES_ENCRYPT);
+
+    // Generate a unique key for Mike
+    generateRandomKey(mikeKey.rd_key, keyLength);
+    AES_set_encrypt_key(mikeKey.rd_key, keyLength*8, &mikeKey);
+    AES_cbc_encrypt(ciphertext, mikeCiphertext, sizeof(ciphertext), &mikeKey, iv, AES_ENCRYPT);
+
+    // Generate a unique key for Tim
+    generateRandomKey(timKey.rd_key, keyLength);
+    AES_set_encrypt_key(timKey.rd_key, keyLength*8, &timKey);
+    AES_cbc_encrypt(ciphertext, timCiphertext, sizeof(ciphertext), &timKey, iv, AES_ENCRYPT);
+
+    return 0;
+}
