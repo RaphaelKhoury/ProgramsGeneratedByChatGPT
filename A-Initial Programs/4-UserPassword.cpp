@@ -6,16 +6,16 @@ using namespace std;
 int main() {
 	string password, login;
 
-	cout << "Entrez le mot de passe: ";
+	cout << "Input the login: ";
 	cin >> password;
-	cout << "Entrez le login: ";
+	cout << "Input the password: ";
 	cin >> login;
 	regex pattern("(" + login + ")");
 	if (regex_search(password, pattern)) {
-		cout << "Le login ne peut pas être inclus dans le mot de passe." << endl;
+		cout << "The login cannot be included in the password." << endl;
 	}
 	else {
-		cout << "Mot de passe valide." << endl;
+		cout << "Password is valid." << endl;
 	}
 	return 0;
 }
